@@ -44,13 +44,17 @@ Utility.withAllStdIn((inputBuff: Buffer) => {
 
             // service part
             const fileDescriptorModel = ProtoSvcTsdFormatter.format(fileNameToDescriptor[fileName], exportMap, isGrpcJs);
+            // These changes originate from https://github.com/kellycampbell/grpc_tools_node_protoc_ts/commit/6e4853ebb5d3ad5ebd58fe3288b4481ee83692ac
+            const svcFileName = Utility.svcFilePathFromProtoWithoutExt(fileName);
+            const svtTsdFile = new CodeGeneratorResponse.File();
+            svtTsdFile.setName(svcFileName + ".d.ts");
             if (fileDescriptorModel != null) {
-                const svcFileName = Utility.svcFilePathFromProtoWithoutExt(fileName);
-                const svtTsdFile = new CodeGeneratorResponse.File();
-                svtTsdFile.setName(svcFileName + ".d.ts");
                 svtTsdFile.setContent(TplEngine.render("svc_tsd", fileDescriptorModel));
-                codeGenResponse.addFile(svtTsdFile);
+            } else {
+                // Create empty .d.ts for bazel
+                svtTsdFile.setContent("// No Services defined in " + msgFileName + ".proto");
             }
+            codeGenResponse.addFile(svtTsdFile);
         });
 
         process.stdout.write(Buffer.from(codeGenResponse.serializeBinary()));
